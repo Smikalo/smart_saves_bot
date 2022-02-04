@@ -1,0 +1,13 @@
+creating via tg commands database with users' chat_ids, tags and keywords
+reading link from users' message
+parcing links' preview data
+reading data from links' description
+finding keywords from database in description
+finding corresponding tags
+sending to the user approuval request with tagged link
+user can add or remove some tags manually
+when user is done, sending tagged link to corresponding channels from database
+
+UPDs:
+adding some helpful buttons(including "buttons" command)
+analysing not only links, but also text posts
