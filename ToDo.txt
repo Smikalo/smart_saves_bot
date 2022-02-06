@@ -14,4 +14,5 @@ analysing not only links, but also text posts
 
 
 UPD from 06.02.2022
-instead of creating a database with users' information it is better to store all data in telegram chat with user.
+Instead of creating a database with users' information it is better to store all data in telegram chat with user.
+This way users' data is more secure.
