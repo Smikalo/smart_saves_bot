@@ -11,3 +11,7 @@ when user is done, sending tagged link to corresponding channels from database
 UPDs:
 adding some helpful buttons(including "buttons" command)
 analysing not only links, but also text posts
+
+
+UPD from 06.02.2022
+instead of creating a database with users' information it is better to store all data in telegram chat with user.
