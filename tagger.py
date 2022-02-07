@@ -1,3 +1,5 @@
+'''AUTOTAGER OF MESSAGES'''
+
 import database
 
 # finds out which tags from database are passing to the text

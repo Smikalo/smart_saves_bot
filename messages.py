@@ -1,3 +1,5 @@
+'''SETUP PANNEL FOR MESSAGES'''
+
 format_error="I'm sorry, but I can't understand format of your message. I can only tag link or text messages."
 tags_verification="Whould you like me to send previous message to corresponding channels?"
 between_text_and_tags='\n-----------\n'

@@ -4,4 +4,7 @@
 + 4) Manual retagging mode
 + 5) Sending tagged message to corresponding chat
 6) Storing all data at database
-7) Setup mode
+7) Setup mode (Easier way to add folders, tags and keywords)
+8) Relocation to aiogram
+9) Debug and optimisation
+10) Design
