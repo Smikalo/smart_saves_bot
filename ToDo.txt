@@ -1,18 +1,7 @@
-creating via tg commands database with users' chat_ids, tags and keywords
-reading link from users' message
-parcing links' preview data
-reading data from links' description
-finding keywords from database in description
-finding corresponding tags
-sending to the user approuval request with tagged link
-user can add or remove some tags manually
-when user is done, sending tagged link to corresponding channels from database
-
-UPDs:
-adding some helpful buttons(including "buttons" command)
-analysing not only links, but also text posts
-
-
-UPD from 06.02.2022
-Instead of creating a database with users' information it is better to store all data in telegram chat with user.
-This way users' data is more secure.
++ 1) Getting links tagged
++ 2) Getting text tagged
++ 3) Returning tagged message
++ 4) Manual retagging mode
++ 5) Sending tagged message to corresponding chat
+6) Storing all data at database
+7) Setup mode
