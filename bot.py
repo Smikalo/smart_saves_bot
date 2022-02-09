@@ -25,65 +25,122 @@ bot = telebot.TeleBot(config.TOKEN)
 # /setup - setup mode, in which user can setup database information
 # /status - current bot setuos
 # /info - some info about bots' creator(optional)
+
+@bot.message_handler(commands=['start'])
+def setup(message):
+    if message.chat.type == 'group':
+        database.add('chats', message.chat.title.lower(), str(message.chat.id))
+        database.add('tags', message.chat.title.lower(), message.chat.title.lower())
+        bot.send_message(message.chat.id, messages.started+message.chat.title.lower())
+
+@bot.message_handler(commands=['delete'])
+def setup(message):
+    if message.chat.type == 'group':
+        database.delete(str(message.chat.title.lower()))
+        bot.send_message(message.chat.id, messages.deleted+message.chat.title.lower())
+
+
 @bot.message_handler(commands=['setup'])
 def setup(message):
-    bot.send_message(message.chat.id, '/setup')
+    if message.chat.type == 'group':
+        bot.send_message(message.chat.id, messages.setup_message)
 
 
+@bot.message_handler(commands=['key'])
+def key(message):
+    if message.chat.type == 'group':
+        bot.send_message(message.chat.id, messages.current_key_message+
+                        '\n'+', '.join(database.get('tags',message.chat.title.lower(),'*'))+
+                        '\n'+messages.change_message)
+
+@bot.message_handler(commands=['change'])
+def change(message):
+    if message.chat.type == 'group':
+        bot.send_message(message.chat.id, messages.changing_key_message)
+
+@bot.message_handler(commands=['newkey'])
+def new_key(message):
+    global mode
+    if message.chat.type == 'group':
+        mode='newkey'
+
+@bot.message_handler(commands=['addkey'])
+def add_key(message):
+    global mode
+    if message.chat.type == 'group':
+        mode='addkey'
 
 # working with messages
 @bot.message_handler(content_types=['text'])
 def return_tagged_text(message):
     # using some globals to add 'manual' mode
     global TEXT,new_tags,mode,tags_list,tags_str
-    try:
-        # if you are just sending bot messages
-        if mode != 'manual':
-            # setting some usefull shortings
-            TEXT = message.text
-            chat = message.chat.id
 
-            # if text is a single link
-            if ('\n' not in TEXT) and (('https://' == TEXT[:8]) or ('http://' == TEXT[:7])):
-                # getting texts' link preview info
-                title = link_preview(TEXT).title
-                description = link_preview(TEXT).description
+    if message.chat.type == 'private':
+        try:
+            # if you are just sending bot messages
+            if mode == '!manual':
+                # setting some usefull shortings
+                TEXT = message.text
+                chat = message.chat.id
+
+                # if text is a single link
+                if ('\n' not in TEXT) and (('https://' == TEXT[:8]) or ('http://' == TEXT[:7])):
+                    # getting texts' link preview info
+                    title = link_preview(TEXT).title
+                    description = link_preview(TEXT).description
+                    
+                    # formating preview info
+                    preview_TEXT = title+'\n'+description
+                    data = preview_TEXT.lower()
+                # if text is not a link
+                else:
+                    data = TEXT.lower()
+
+                # getting tags from data and formating them
                 
-                # formating preview info
-                preview_TEXT = title+'\n'+description
-                data = preview_TEXT.lower()
-            # if text is not a link
-            else:
-                data = TEXT.lower()
+                tags_list = tagger.get_tags(data)
+                tags_str = tagger.format_tags(tags_list)
 
-            # getting tags from data and formating them
-            tags_list = tagger.get_tags(data)
-            tags_str = tagger.format_tags(tags_list)
+                # forming request
+                request = TEXT+messages.between_text_and_tags+tags_str
 
-            # forming request
-            request = TEXT+messages.between_text_and_tags+tags_str
+                # asking for users' approuval
+                    # creating two vote buttons under bots' message: '👍' and '👎'
+                markup=types.InlineKeyboardMarkup(row_width=2)
 
-            # asking for users' approuval
-                # creating two vote buttons under bots' message: '👍' and '👎'
-            markup=types.InlineKeyboardMarkup(row_width=2)
+                        # yes, post like this
+                item1=types.InlineKeyboardButton('👍',callback_data='OK')
+                        # no, I'd rather rewrite these tags manually
+                item2=types.InlineKeyboardButton('👎',callback_data='REDO')
 
-                    # yes, post like this
-            item1=types.InlineKeyboardButton('👍',callback_data='OK')
-                    # no, I'd rather rewrite these tags manually
-            item2=types.InlineKeyboardButton('👎',callback_data='REDO')
+                markup.add(item1,item2)
 
-            markup.add(item1,item2)
-
-                # sending bots' tags guess
-            bot.send_message(chat, request, reply_markup=markup)
-                # asking
-            bot.send_message(chat, messages.tags_verification)
-        # if you want rewrite bots' tags
-        else:
-            new_tags=message.text
-
-    except Exception as e:
-        print(repr(e),'bot')
+                    # sending bots' tags guess
+                bot.send_message(chat, request, reply_markup=markup)
+                    # asking
+                bot.send_message(chat, messages.tags_verification)
+            # if you want rewrite bots' tags
+            elif mode == 'manual':
+                new_tags=message.text
+        
+        except Exception as e:
+            print(repr(e),'bot')
+    
+    elif mode == 'newkey':
+        database.write('tags',message.chat.title.lower(),(message.text.lower()).split(' '))
+        bot.send_message(message.chat.id, messages.changed_key_message+'\n'+', '.join(database.get('tags',message.chat.title.lower(),'*')))
+        mode='!manual'
+    
+    elif mode == 'addkey':
+        print('!!!!!!!!!!', database.get('tags',message.chat.title.lower(),'*'))
+        extended_tags=database.get('tags',message.chat.title.lower(),'*')
+        print('+++++++++', extended_tags)
+        extended_tags.extend((message.text.lower()).split(' '))
+        print('---------', extended_tags)
+        database.write('tags',message.chat.title.lower(), extended_tags)
+        bot.send_message(message.chat.id, messages.changed_key_message+'\n'+', '.join(database.get('tags',message.chat.title.lower(),'*')))
+        mode='!manual'
 
 
 # working with callbacks and buttons
@@ -97,7 +154,7 @@ def callback_buttons(call):
             if call.data == 'OK':
                 # useful shorting
                 # once database will be introduce chats' IDs will be stored there (?)
-                chats=config.CHATS
+                chats=database.get_chats()
 
                 # sending tagged message to corresponding chats
                 for tag in chats:
@@ -139,7 +196,7 @@ def callback_buttons(call):
                 
                 # useful shorting
                 # once database will be introduce chats' IDs will be stored there (?)
-                chats=config.CHATS
+                chats=database.get_chats()
 
                 # sending retagged message to corresponding chats
                 for tag in chats:

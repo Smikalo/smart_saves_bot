@@ -9,8 +9,8 @@ def get_tags(text):
     try:
         # dictionary formatted {'tag1':['keyword1', 'keyword2'], 
         #                       'tag2':['keyword3', 'keyword2'] ...} 
-        if database.tags != {}:
-            tags=database.tags
+        if database.get_Tags() != {}:
+            tags=database.get_Tags()
         else:
             raise Exception
         # what function returns
@@ -30,6 +30,7 @@ def get_tags(text):
 # returns string '#tag2 #tag4 ...' or ''
 def format_tags(tags_list):
     if tags_list != []:
+        print(tags_list)
         formated_tags = '#'+' #'.join(tags_list)
         return formated_tags
     else:
