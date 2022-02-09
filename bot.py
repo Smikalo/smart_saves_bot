@@ -1,6 +1,7 @@
 '''UI'''
 
 # getting essential libraries
+from turtle import speed
 import telebot
 import config
 import database
@@ -11,6 +12,8 @@ from telebot import types
 
 # if mode is 'manual', all users' messages are writen in new_tags
 mode='!manual'
+
+posting_speed='!fast'
 
 # if user does not like which tags bot used, he can go into 'manual' 
 # mode and send new tags for message to the bot. Then, to confirm changes
@@ -45,6 +48,20 @@ def setup(message):
     if message.chat.type == 'group':
         bot.send_message(message.chat.id, messages.setup_message)
 
+
+@bot.message_handler(commands=['fast'])
+def add_key(message):
+    global posting_speed
+    if message.chat.type == 'private':
+        posting_speed='fast'
+        bot.send_message(message.chat.id, messages.fast)
+
+@bot.message_handler(commands=['slow'])
+def add_key(message):
+    global posting_speed
+    if message.chat.type == 'private':
+        posting_speed='!fast'
+        bot.send_message(message.chat.id, messages.not_so_fast)
 
 @bot.message_handler(commands=['key'])
 def key(message):
@@ -91,35 +108,50 @@ def return_tagged_text(message):
                     description = link_preview(TEXT).description
                     
                     # formating preview info
-                    preview_TEXT = title+'\n'+description
+                    preview_TEXT = str(title)+'\n'+str(description)
                     data = preview_TEXT.lower()
+                    
                 # if text is not a link
                 else:
                     data = TEXT.lower()
 
                 # getting tags from data and formating them
                 
+                    
                 tags_list = tagger.get_tags(data)
                 tags_str = tagger.format_tags(tags_list)
 
                 # forming request
                 request = TEXT+messages.between_text_and_tags+tags_str
 
-                # asking for users' approuval
-                    # creating two vote buttons under bots' message: '👍' and '👎'
-                markup=types.InlineKeyboardMarkup(row_width=2)
+                if posting_speed == '!fast':
+                    # asking for users' approuval
+                        # creating two vote buttons under bots' message: '👍' and '👎'
+                    markup=types.InlineKeyboardMarkup(row_width=2)
 
-                        # yes, post like this
-                item1=types.InlineKeyboardButton('👍',callback_data='OK')
-                        # no, I'd rather rewrite these tags manually
-                item2=types.InlineKeyboardButton('👎',callback_data='REDO')
+                            # yes, post like this
+                    item1=types.InlineKeyboardButton('👍',callback_data='OK')
+                            # no, I'd rather rewrite these tags manually
+                    item2=types.InlineKeyboardButton('👎',callback_data='REDO')
 
-                markup.add(item1,item2)
+                    markup.add(item1,item2)
 
-                    # sending bots' tags guess
-                bot.send_message(chat, request, reply_markup=markup)
-                    # asking
-                bot.send_message(chat, messages.tags_verification)
+                        # sending bots' tags guess
+                    bot.send_message(chat, request, reply_markup=markup)
+                        # asking
+                    bot.send_message(chat, messages.tags_verification)
+                elif posting_speed == 'fast':
+                    bot.send_message(chat, request)
+                    chats=database.get_chats()
+
+                    # sending tagged message to corresponding chats
+                    for tag in chats:
+                        if tag in tags_list:
+                            chat_id = chats[tag]
+                            post_text=TEXT+messages.between_text_and_tags+tags_str
+                            bot.send_message(chat_id, post_text)
+                
+
             # if you want rewrite bots' tags
             elif mode == 'manual':
                 new_tags=message.text
@@ -133,11 +165,8 @@ def return_tagged_text(message):
         mode='!manual'
     
     elif mode == 'addkey':
-        print('!!!!!!!!!!', database.get('tags',message.chat.title.lower(),'*'))
         extended_tags=database.get('tags',message.chat.title.lower(),'*')
-        print('+++++++++', extended_tags)
         extended_tags.extend((message.text.lower()).split(' '))
-        print('---------', extended_tags)
         database.write('tags',message.chat.title.lower(), extended_tags)
         bot.send_message(message.chat.id, messages.changed_key_message+'\n'+', '.join(database.get('tags',message.chat.title.lower(),'*')))
         mode='!manual'
@@ -147,7 +176,7 @@ def return_tagged_text(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_buttons(call):
     # globals are needed for 'manual' mode
-    global mode, new_tags, tags_str, tags_list
+    global mode, new_tags, tags_str, tags_list, TEXT
     try:
         if call.message:
             # if user'd like to send message tagged by bot straight to channels
@@ -156,6 +185,9 @@ def callback_buttons(call):
                 # once database will be introduce chats' IDs will be stored there (?)
                 chats=database.get_chats()
 
+                post_text=TEXT+messages.between_text_and_tags+'#none'
+
+                
                 # sending tagged message to corresponding chats
                 for tag in chats:
                     if tag in tags_list:
@@ -165,8 +197,11 @@ def callback_buttons(call):
                 
                 # deleting buttons under the message
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=post_text, reply_markup=None)
-                # sending message to insure user that everything worked out
-                bot.send_message(call.message.chat.id, messages.inform_about_posting)
+                if post_text.count('#none')==0:
+                    # sending message to insure user that everything worked out
+                    bot.send_message(call.message.chat.id, messages.inform_about_posting)
+                else:
+                    bot.send_message(call.message.chat.id, messages.link_error)
 
             # if user'd like to write tags on his own
             elif call.data == 'REDO':
